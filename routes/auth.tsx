@@ -2,8 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
-import { useServerFn } from "@tanstack/react-start";
-import { claimAdminRole } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Administrator Sign In — KanithaPor 2026" }, { name: "robots", content: "noindex" }] }),
@@ -12,11 +10,8 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const claim = useServerFn(claimAdminRole);
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -36,7 +31,7 @@ function AuthPage() {
     const isAdmin = (roles ?? []).some((role) => role.role === "admin");
     if (!isAdmin) {
       await supabase.auth.signOut();
-      throw new Error("This account does not have admin access yet. Use Register Admin first, or add the admin role in Supabase.");
+      throw new Error("This account does not have admin access yet. Contact your administrator for an admin account.");
     }
   }
 
@@ -49,48 +44,23 @@ function AuthPage() {
     if (message.includes("Email not confirmed")) {
       return "This email is not confirmed yet. Confirm it first, then sign in again.";
     }
-    if (message.includes("Admin signup not configured")) {
-      return "Admin registration is not configured yet. Add ADMIN_SIGNUP_CODE to your .env file first.";
-    }
-    if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
-      return "Admin registration is not configured yet. Add SUPABASE_SERVICE_ROLE_KEY to your .env file first.";
-    }
-    if (message.includes("Invalid admin code")) {
-      return "The admin invitation code is incorrect.";
-    }
-
     return message;
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null); setBusy(true);
+    setError(null);
+    setBusy(true);
     try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        await requireAdminAccess();
-      } else {
-        const signInResult = await supabase.auth.signInWithPassword({ email, password });
-
-        if (signInResult.error) {
-          const { data, error } = await supabase.auth.signUp({
-            email, password,
-            options: { emailRedirectTo: window.location.origin + "/admin" },
-          });
-          if (error) throw error;
-          if (!data.session) {
-            throw new Error("Account created. Confirm the email first, then sign in again to finish admin access.");
-          }
-        }
-
-        await claim({ data: { code } });
-        await requireAdminAccess();
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await requireAdminAccess();
       navigate({ to: "/admin" });
     } catch (err) {
       setError(getFriendlyError(err));
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -102,25 +72,37 @@ function AuthPage() {
           <p className="text-xs text-muted-foreground">Restricted area · staff only</p>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-1 rounded-full bg-secondary p-1">
-          <button onClick={() => setMode("signin")} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${mode === "signin" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>Sign In</button>
-          <button onClick={() => setMode("signup")} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${mode === "signup" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>Register Admin</button>
-        </div>
-
         <form onSubmit={submit} className="mt-4 space-y-3">
-          <input type="email" required placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm" />
-          <input type="password" required placeholder="Password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm" />
-          {mode === "signup" && (
-            <input type="text" required placeholder="Admin invitation code" value={code} onChange={(e) => setCode(e.target.value)}
-              className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm" />
-          )}
+          <input
+            type="email"
+            required
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm"
+          />
+          <input
+            type="password"
+            required
+            placeholder="Password"
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm"
+          />
           {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>}
-          <button type="submit" disabled={busy} className="w-full rounded-xl bg-gradient-cta px-4 py-2.5 text-sm font-semibold text-white shadow-soft disabled:opacity-60">
-            {busy ? "…" : mode === "signin" ? "Sign In" : "Create Admin Account"}
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full rounded-xl bg-gradient-cta px-4 py-2.5 text-sm font-semibold text-white shadow-soft disabled:opacity-60"
+          >
+            {busy ? "Signing in…" : "Sign In"}
           </button>
         </form>
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          Contact your administrator to create an admin account.
+        </p>
       </div>
     </div>
   );
