@@ -355,7 +355,7 @@ function QuizPage() {
       </header>
 
       {/* camera floating */}
-      <div className="fixed bottom-3 right-3 z-30 w-28 overflow-hidden rounded-lg border-2 border-brand-orange shadow-glow sm:w-36">
+      <div className="fixed bottom-3 left-3 z-30 w-28 overflow-hidden rounded-lg border-2 border-brand-orange shadow-glow sm:w-36">
         <video ref={liveVideoRef} autoPlay muted playsInline className="aspect-video w-full bg-black object-cover" />
         <div className="flex items-center gap-1 bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" /> Live
