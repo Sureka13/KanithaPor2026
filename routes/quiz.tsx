@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { getQuestionsForCategory, QUIZ_DURATION_SECONDS, type Question } from "@/lib/questions";
 import { shuffleQuestion } from "@/utils/shuffleQuestion";
-import Draggable from "react-draggable";
+
 import {
   getSessionId, loadStudent, pushEvent, startSession, heartbeat, uploadSnapshot, endSessionWithSubmission,
 } from "@/lib/quiz-session";
@@ -234,26 +234,31 @@ function QuizPage() {
   }
 
   try {
-    // Stop old stream if any
     streamRef.current?.getTracks().forEach((track) => track.stop());
 
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
+      video: {
+        facingMode: "user",
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+      },
       audio: false,
     });
 
     streamRef.current = stream;
 
-    // Attach stream to pre-flight preview
     if (previewVideoRef.current) {
       previewVideoRef.current.srcObject = stream;
-      await previewVideoRef.current.play();
+      previewVideoRef.current.onloadedmetadata = () => {
+        previewVideoRef.current?.play().catch(console.error);
+      };
     }
 
-    // Attach stream to floating live monitor
     if (liveVideoRef.current) {
       liveVideoRef.current.srcObject = stream;
-      await liveVideoRef.current.play();
+      liveVideoRef.current.onloadedmetadata = () => {
+        liveVideoRef.current?.play().catch(console.error);
+      };
     }
 
     setCameraReady(true);
@@ -264,7 +269,6 @@ function QuizPage() {
     setCameraError(getCameraErrorMessage(error));
   }
 }
-
   async function beginQuiz() {
     if (!cameraReady || !student) return;
     try { await document.documentElement.requestFullscreen(); } catch { /* allow */ }
@@ -372,24 +376,23 @@ function QuizPage() {
 
     
       {/* camera floating */}
-<Draggable>
-  <div
-    className="fixed bottom-3 left-3 z-30 w-28 cursor-move overflow-hidden rounded-lg border-2 border-brand-orange shadow-glow sm:w-36"
-  >
-    <video
-      ref={liveVideoRef}
-      autoPlay
-      muted
-      playsInline
-      className="w-full"
-    />
+{/* camera floating */}
+{/* camera floating */}
+<div
+  className="fixed bottom-3 left-3 z-30 w-28 overflow-hidden rounded-lg border-2 border-brand-orange bg-black shadow-glow sm:w-36"
+>
+  <video
+    ref={liveVideoRef}
+    autoPlay
+    muted
+    playsInline
+    className="h-full w-full object-cover"
+  />
 
-    <div className="bg-black/70 py-1 text-center text-xs text-white">
-      📹 Drag me
-    </div>
+  <div className="bg-black/70 py-1 text-center text-xs text-white">
+    Live Monitor
   </div>
-</Draggable>
-
+</div>
       <main className="mx-auto flex w-full max-w-5xl flex-1 min-h-0 gap-4 px-4 py-3">
         <section className="flex flex-1 min-w-0 flex-col">
           <div className="text-[11px] font-semibold tracking-wider text-accent uppercase">
