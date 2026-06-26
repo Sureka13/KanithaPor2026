@@ -219,36 +219,51 @@ function QuizPage() {
   }
 
   async function requestCamera() {
-    setCameraError(null);
+  setCameraError(null);
 
-    if (!window.isSecureContext) {
-      setCameraReady(false);
-      setCameraError("Camera access only works on HTTPS or localhost.");
-      return;
-    }
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraReady(false);
-      setCameraError("This browser does not support camera access here.");
-      return;
-    }
-
-    const currentStream = streamRef.current;
-    if (currentStream && currentStream.getTracks().some((track) => track.readyState === "live")) {
-      setCameraReady(true);
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      streamRef.current = stream;
-      setCameraReady(true);
-    } catch (error) {
-      setCameraReady(false);
-      setCameraError(getCameraErrorMessage(error));
-    }
+  if (!window.isSecureContext) {
+    setCameraReady(false);
+    setCameraError("Camera access only works on HTTPS or localhost.");
+    return;
   }
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    setCameraReady(false);
+    setCameraError("This browser does not support camera access here.");
+    return;
+  }
+
+  try {
+    // Stop old stream if any
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false,
+    });
+
+    streamRef.current = stream;
+
+    // Attach stream to pre-flight preview
+    if (previewVideoRef.current) {
+      previewVideoRef.current.srcObject = stream;
+      await previewVideoRef.current.play();
+    }
+
+    // Attach stream to floating live monitor
+    if (liveVideoRef.current) {
+      liveVideoRef.current.srcObject = stream;
+      await liveVideoRef.current.play();
+    }
+
+    setCameraReady(true);
+    setCameraError(null);
+  } catch (error) {
+    console.error(error);
+    setCameraReady(false);
+    setCameraError(getCameraErrorMessage(error));
+  }
+}
 
   async function beginQuiz() {
     if (!cameraReady || !student) return;
