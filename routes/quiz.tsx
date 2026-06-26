@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { getQuestionsForCategory, QUIZ_DURATION_SECONDS, type Question } from "@/lib/questions";
 import { shuffleQuestion } from "@/utils/shuffleQuestion";
-
 import {
   getSessionId, loadStudent, pushEvent, startSession, heartbeat, uploadSnapshot, endSessionWithSubmission,
 } from "@/lib/quiz-session";
@@ -219,50 +218,37 @@ function QuizPage() {
   }
 
   async function requestCamera() {
-  setCameraError(null);
-
-  try {
-    // Clean up old stream completely
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "user",
-      },
-      audio: false,
-    });
-
-    streamRef.current = stream;
-
-    if (previewVideoRef.current) {
-      previewVideoRef.current.srcObject = stream;
-      await previewVideoRef.current.play();
-    }
-
-    if (liveVideoRef.current) {
-      liveVideoRef.current.srcObject = stream;
-      await liveVideoRef.current.play();
-    }
-
-    setCameraReady(true);
     setCameraError(null);
-  } catch (error) {
-    console.error("Camera error:", error);
 
-    // THIS WILL SHOW THE REAL ERROR ON YOUR PHONE
-    alert(
-      error instanceof Error
-        ? error.message
-        : "Unknown camera error"
-    );
+    if (!window.isSecureContext) {
+      setCameraReady(false);
+      setCameraError("Camera access only works on HTTPS or localhost.");
+      return;
+    }
 
-    setCameraReady(false);
-    setCameraError(getCameraErrorMessage(error));
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraReady(false);
+      setCameraError("This browser does not support camera access here.");
+      return;
+    }
+
+    const currentStream = streamRef.current;
+    if (currentStream && currentStream.getTracks().some((track) => track.readyState === "live")) {
+      setCameraReady(true);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = stream;
+      setCameraReady(true);
+    } catch (error) {
+      setCameraReady(false);
+      setCameraError(getCameraErrorMessage(error));
+    }
   }
-}
+
   async function beginQuiz() {
     if (!cameraReady || !student) return;
     try { await document.documentElement.requestFullscreen(); } catch { /* allow */ }
@@ -368,25 +354,14 @@ function QuizPage() {
         </div>
       </header>
 
-    
       {/* camera floating */}
-{/* camera floating */}
-{/* camera floating */}
-<div
-  className="fixed bottom-3 left-3 z-30 w-28 overflow-hidden rounded-lg border-2 border-brand-orange bg-black shadow-glow sm:w-36"
->
-  <video
-    ref={liveVideoRef}
-    autoPlay
-    muted
-    playsInline
-    className="h-full w-full object-cover"
-  />
+      <div className="fixed bottom-3 right-3 z-30 w-28 overflow-hidden rounded-lg border-2 border-brand-orange shadow-glow sm:w-36">
+        <video ref={liveVideoRef} autoPlay muted playsInline className="aspect-video w-full bg-black object-cover" />
+        <div className="flex items-center gap-1 bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" /> Live
+        </div>
+      </div>
 
-  <div className="bg-black/70 py-1 text-center text-xs text-white">
-    Live Monitor
-  </div>
-</div>
       <main className="mx-auto flex w-full max-w-5xl flex-1 min-h-0 gap-4 px-4 py-3">
         <section className="flex flex-1 min-w-0 flex-col">
           <div className="text-[11px] font-semibold tracking-wider text-accent uppercase">
