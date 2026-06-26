@@ -221,26 +221,16 @@ function QuizPage() {
   async function requestCamera() {
   setCameraError(null);
 
-  if (!window.isSecureContext) {
-    setCameraReady(false);
-    setCameraError("Camera access only works on HTTPS or localhost.");
-    return;
-  }
-
-  if (!navigator.mediaDevices?.getUserMedia) {
-    setCameraReady(false);
-    setCameraError("This browser does not support camera access here.");
-    return;
-  }
-
   try {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
+    // Clean up old stream completely
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
 
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: "user",
-        width: { ideal: 640 },
-        height: { ideal: 480 },
       },
       audio: false,
     });
@@ -249,22 +239,26 @@ function QuizPage() {
 
     if (previewVideoRef.current) {
       previewVideoRef.current.srcObject = stream;
-      previewVideoRef.current.onloadedmetadata = () => {
-        previewVideoRef.current?.play().catch(console.error);
-      };
+      await previewVideoRef.current.play();
     }
 
     if (liveVideoRef.current) {
       liveVideoRef.current.srcObject = stream;
-      liveVideoRef.current.onloadedmetadata = () => {
-        liveVideoRef.current?.play().catch(console.error);
-      };
+      await liveVideoRef.current.play();
     }
 
     setCameraReady(true);
     setCameraError(null);
   } catch (error) {
-    console.error(error);
+    console.error("Camera error:", error);
+
+    // THIS WILL SHOW THE REAL ERROR ON YOUR PHONE
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Unknown camera error"
+    );
+
     setCameraReady(false);
     setCameraError(getCameraErrorMessage(error));
   }
