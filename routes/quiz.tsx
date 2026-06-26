@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { getQuestionsForCategory, QUIZ_DURATION_SECONDS, type Question } from "@/lib/questions";
 import { shuffleQuestion } from "@/utils/shuffleQuestion";
+import Draggable from "react-draggable";
 import {
   getSessionId, loadStudent, pushEvent, startSession, heartbeat, uploadSnapshot, endSessionWithSubmission,
 } from "@/lib/quiz-session";
@@ -356,12 +357,24 @@ function QuizPage() {
 
       {/* camera floating */}
 {/* camera floating */}
-      <div className="fixed top-20 right-2 z-30 w-24 overflow-hidden rounded-lg border-2 border-brand-orange shadow-glow sm:bottom-3 sm:right-3 sm:top-auto sm:w-36">
-        <video ref={liveVideoRef} autoPlay muted playsInline className="aspect-video w-full bg-black object-cover" />
-        <div className="flex items-center gap-1 bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" /> Live
-        </div>
-      </div>
+      {/* camera floating */}
+<Draggable>
+  <div
+    className="fixed top-20 right-2 z-30 w-24 cursor-move overflow-hidden rounded-lg border-2 border-brand-orange shadow-glow sm:bottom-3 sm:right-3 sm:top-auto sm:w-36"
+  >
+    <video
+      ref={liveVideoRef}
+      autoPlay
+      muted
+      playsInline
+      className="w-full"
+    />
+
+    <div className="bg-black/70 py-1 text-center text-xs text-white">
+      📹 Drag me
+    </div>
+  </div>
+</Draggable>
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 min-h-0 gap-4 px-4 py-3">
         <section className="flex flex-1 min-w-0 flex-col">
