@@ -55,16 +55,7 @@ function normalizeStudentCategory(student: Student): Student {
   };
 }
 
-// Access code verification disabled
-// export async function verifyAccessCode(code: string): Promise<boolean> {
-//   const { data } = await supabase
-//     .from("access_codes")
-//     .select("code")
-//     .eq("code", code.toUpperCase())
-//     .eq("enabled", true)
-//     .maybeSingle();
-//   return !!data;
-// }
+
 
 export async function startSession(student: Student) {
   const normalizedStudent = normalizeStudentCategory(student);

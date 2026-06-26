@@ -3,14 +3,14 @@ import { useState } from "react";
 import { z } from "zod";
 import { Logo } from "@/components/Logo";
 import { MathSymbols } from "@/components/MathSymbols";
-import { saveStudent, verifyAccessCode } from "@/lib/quiz-session";
+import { saveStudent, type Category } from "@/lib/quiz-session";
 
 export const Route = createFileRoute("/entry")({
   head: () => ({
     meta: [
-      { title: "Student Entry - KanithaPor 2026" },
+      { title: "Student Entry ” KanithaPor 2026" },
       { name: "description", content: "Register as a participant for KanithaPor 2026." },
-    ],
+    ]
   }),
   component: EntryPage,
 });
@@ -18,55 +18,36 @@ export const Route = createFileRoute("/entry")({
 const schema = z.object({
   fullName: z.string().trim().min(2, "Enter your full name").max(80),
   schoolName: z.string().trim().min(2, "Enter your school name").max(120),
+  category: z.literal("junior"),
   standard: z.coerce.number().int().min(1).max(6),
-  accessCode: z.string().trim().min(1, "Access code is required").max(40),
 });
 
 function EntryPage() {
   const navigate = useNavigate();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const category: Category = "junior";
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
     setErrors({});
-
-    let shouldResetSubmitting = true;
-
-    try {
-      const fd = new FormData(e.currentTarget);
-      const parsed = schema.safeParse({
-        fullName: fd.get("fullName"),
-        schoolName: fd.get("schoolName"),
-        standard: fd.get("standard"),
-        accessCode: fd.get("accessCode"),
-      });
-
-      if (!parsed.success) {
-        const errs: Record<string, string> = {};
-        for (const issue of parsed.error.issues) errs[issue.path[0] as string] = issue.message;
-        setErrors(errs);
-        return;
-      }
-
-      const ok = await verifyAccessCode(parsed.data.accessCode);
-      if (!ok) {
-        setErrors({ accessCode: "Invalid access code." });
-        return;
-      }
-
-      saveStudent({
-        ...parsed.data,
-        category: parsed.data.standard <= 3 ? "junior" : "senior",
-      });
-      shouldResetSubmitting = false;
-      navigate({ to: "/quiz" });
-    } catch (error) {
-      console.error(error);
-      setErrors({ accessCode: "Unable to verify access code right now. Please try again." });
-    } finally {
-      if (shouldResetSubmitting) setSubmitting(false);
+    const fd = new FormData(e.currentTarget);
+    const parsed = schema.safeParse({
+      fullName: fd.get("fullName"),
+      schoolName: fd.get("schoolName"),
+      category,
+      standard: fd.get("standard"),
+    });
+    if (!parsed.success) {
+      const errs: Record<string, string> = {};
+      for (const issue of parsed.error.issues) errs[issue.path[0] as string] = issue.message;
+      setErrors(errs);
+      setSubmitting(false);
+      return;
     }
+    saveStudent(parsed.data);
+    navigate({ to: "/quiz" });
   }
 
   const stdOptions = [1, 2, 3, 4, 5, 6];
@@ -85,7 +66,7 @@ function EntryPage() {
           <form onSubmit={onSubmit} className="rounded-3xl border border-border bg-card/95 p-6 shadow-glow backdrop-blur" noValidate>
             <div className="mb-4 flex items-center justify-between lg:hidden">
               <Link to="/"><Logo className="h-12 w-auto" /></Link>
-              <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">Home</Link>
+              <Link to="/" className="text-xs text-muted-foreground hover:text-foreground"> Home</Link>
             </div>
             <h1 className="font-display text-2xl font-bold">Participant Entry</h1>
 
@@ -94,20 +75,17 @@ function EntryPage() {
               <Field label="School Name" name="schoolName" placeholder="Bharath Vidyalaya" error={errors.schoolName} />
             </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-foreground">Standard</label>
-                <select name="standard" defaultValue="" className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30">
-                  <option value="" disabled>Select</option>
-                  {stdOptions.map((n) => <option key={n} value={n}>{`Standard ${n}`}</option>)}
-                </select>
-                {errors.standard && <p className="mt-1 text-xs text-destructive">{errors.standard}</p>}
-              </div>
-              <Field label="Access Code" name="accessCode" placeholder="School code" error={errors.accessCode} />
+            <div className="mt-3">
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">Standard</label>
+              <select name="standard" defaultValue="" className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30">
+                <option value="" disabled>Select</option>
+                {stdOptions.map((n) => <option key={n} value={n}>{`Standard ${n}`}</option>)}
+              </select>
+              {errors.standard && <p className="mt-1 text-xs text-destructive">{errors.standard}</p>}
             </div>
 
             <button type="submit" disabled={submitting} className="mt-5 w-full rounded-xl bg-gradient-cta px-6 py-3 font-semibold text-white shadow-soft transition hover:scale-[1.01] disabled:opacity-60">
-              {submitting ? "Checking..." : "Continue to Quiz"}
+              {submitting ? "Loading..." : "Continue to Competition"}
             </button>
           </form>
         </div>
