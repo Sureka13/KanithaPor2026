@@ -3,32 +3,36 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 function createSupabaseClient() {
-  // Use import.meta.env for client-side (Vite build-time replacement)
-  // Fall back to process.env for SSR (server-side rendering)
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const SUPABASE_PUBLISHABLE_KEY =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_ANON_KEY;;
+  const SUPABASE_URL =
+    import.meta.env.VITE_SUPABASE_URL;
 
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-    const missing = [
-      ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
-      ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
-    ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Check your environment configuration.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
+  const SUPABASE_KEY =
+    import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  console.log("SUPABASE_URL:", SUPABASE_URL);
+  console.log("SUPABASE_KEY:", SUPABASE_KEY);
+
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    throw new Error(
+      "Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY"
+    );
   }
 
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: {
-      storage: typeof window !== 'undefined' ? localStorage : undefined,
-      persistSession: true,
-      autoRefreshToken: true,
+  return createClient<Database>(
+    SUPABASE_URL,
+    SUPABASE_KEY,
+    {
+      auth: {
+        storage:
+          typeof window !== "undefined"
+            ? localStorage
+            : undefined,
+        persistSession: true,
+        autoRefreshToken: true,
+      },
     }
-  });
+  );
 }
-
 let _supabase: ReturnType<typeof createSupabaseClient> | undefined;
 
 // Import the supabase client like this:
