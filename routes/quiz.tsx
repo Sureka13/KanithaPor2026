@@ -355,12 +355,11 @@ function QuizPage() {
         </div>
       </header>
 
-      {/* camera floating */}
-{/* camera floating */}
+    
       {/* camera floating */}
 <Draggable>
   <div
-    className="fixed top-20 left-2 z-30 w-24 cursor-move overflow-hidden rounded-lg border-2 border-brand-orange shadow-glow sm:bottom-3 sm:right-3 sm:top-auto sm:w-36"
+    className="fixed bottom-3 left-3 z-30 w-28 cursor-move overflow-hidden rounded-lg border-2 border-brand-orange shadow-glow sm:w-36"
   >
     <video
       ref={liveVideoRef}
