@@ -109,9 +109,12 @@ function savePendingSubmissions(list: SubmissionPayload[]) {
   localStorage.setItem(PENDING_SUBMISSIONS_KEY, JSON.stringify(list));
 }
 
+// upsert on session_id (not insert) so a retry after a transient client-side
+// error — the write may have actually landed server-side — updates the same
+// row instead of creating a duplicate submission.
 async function insertSubmission(payload: SubmissionPayload): Promise<boolean> {
   try {
-    const { error } = await supabase.from("submissions").insert(payload);
+    const { error } = await supabase.from("submissions").upsert(payload, { onConflict: "session_id" });
     return !error;
   } catch {
     return false;
