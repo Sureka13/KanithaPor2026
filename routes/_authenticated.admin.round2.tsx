@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { FlagBadge } from "@/components/FlagBadge";
 
 type Row = {
   id: string;
+  session_id: string;
   full_name: string;
   school_name: string;
   standard: number | null;
@@ -23,7 +25,7 @@ function Round2Page() {
     (async () => {
       const { data } = await supabase
         .from("submissions")
-        .select("id, full_name, school_name, standard, score, total, time_taken_seconds, flag_count")
+        .select("id, session_id, full_name, school_name, standard, score, total, time_taken_seconds, flag_count")
         .gte("standard", 4).lte("standard", 6).eq("round", 1)
         .order("score", { ascending: false })
         .order("time_taken_seconds", { ascending: true })
@@ -61,11 +63,11 @@ function Round2Page() {
             <tr>
               <th className="px-4 py-2">Rank</th><th className="px-4 py-2">Name</th><th className="px-4 py-2">School</th>
               <th className="px-4 py-2">Standard</th><th className="px-4 py-2">Score</th><th className="px-4 py-2">Time</th>
-              <th className="px-4 py-2">Status</th>
+              <th className="px-4 py-2">Flags</th><th className="px-4 py-2">Status</th>
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No Standards 4-6 submissions yet.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No Standards 4-6 submissions yet.</td></tr>}
             {rows.map((r, i) => {
               const qualified = i < 50;
               return (
@@ -76,6 +78,9 @@ function Round2Page() {
                   <td className="px-4 py-2">{r.standard ?? "—"}</td>
                   <td className="px-4 py-2 font-semibold">{r.score}/{r.total}</td>
                   <td className="px-4 py-2 tabular-nums">{Math.floor(r.time_taken_seconds/60)}m {r.time_taken_seconds%60}s</td>
+                  <td className="px-4 py-2">
+                    <FlagBadge sessionId={r.session_id} count={r.flag_count} />
+                  </td>
                   <td className="px-4 py-2">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${qualified ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
                       {qualified ? "Qualified" : "—"}

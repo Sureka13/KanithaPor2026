@@ -38,6 +38,7 @@ export type Database = {
       active_sessions: {
         Row: {
           category: string
+          flag_count: number
           full_name: string
           last_seen_at: string
           school_name: string | null
@@ -48,6 +49,7 @@ export type Database = {
         }
         Insert: {
           category: string
+          flag_count?: number
           full_name: string
           last_seen_at?: string
           school_name?: string | null
@@ -58,6 +60,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          flag_count?: number
           full_name?: string
           last_seen_at?: string
           school_name?: string | null
@@ -201,6 +204,12 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_active_session_flags: {
+        Args: {
+          p_session_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

@@ -3,9 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { getQuestionsForCategory, QUIZ_DURATION_SECONDS, type Question } from "@/lib/questions";
 import { shuffleQuestion } from "@/utils/shuffleQuestion";
-import {
-  getSessionId, loadStudent, pushEvent, startSession, heartbeat, uploadSnapshot, endSessionWithSubmission,
-} from "@/lib/quiz-session";
+import { getSessionId, loadStudent, pushEvent, endSessionWithSubmission } from "@/lib/quiz-session";
 
 type QuizPersistenceState = {
   category: "junior" | "senior";
@@ -53,16 +51,11 @@ export const Route = createFileRoute("/quiz")({
 function QuizPage() {
   const navigate = useNavigate();
   const [student, setStudent] = useState(() => loadStudent());
-  const [cameraReady, setCameraReady] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [timeLeft, setTimeLeft] = useState(QUIZ_DURATION_SECONDS);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const previewVideoRef = useRef<HTMLVideoElement>(null);
-  const liveVideoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const startedAtRef = useRef<number>(0);
   const currentRef = useRef(0);
   const finishedRef = useRef(false);
@@ -124,18 +117,8 @@ function QuizPage() {
   useEffect(() => { if (!student) navigate({ to: "/entry" }); }, [student, navigate]);
   useEffect(() => { currentRef.current = current; }, [current]);
 
-  useEffect(() => {
-    const stream = streamRef.current;
-    if (!stream) return;
-
-    for (const video of [previewVideoRef.current, liveVideoRef.current]) {
-      if (!video || video.srcObject === stream) continue;
-      video.srcObject = stream;
-      void video.play().catch(() => {});
-    }
-  }, [cameraReady, started]);
-
-  // proctor listeners
+  // proctor listeners — kept as a silent audit trail (visible later in the
+  // admin results tables) even without live camera monitoring.
   useEffect(() => {
     if (!started) return;
     const fire = (type: "window-blur" | "tab-hidden" | "fullscreen-exit") => {
@@ -165,94 +148,9 @@ function QuizPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started]);
 
-  // snapshot every 10s + heartbeat
-  useEffect(() => {
-    if (!started) return;
-    const tick = async () => {
-      const video = liveVideoRef.current ?? previewVideoRef.current;
-      if (!video || video.videoWidth === 0) { await heartbeat(); return; }
-      const canvas = document.createElement("canvas");
-      canvas.width = 320; canvas.height = 240;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const path = await uploadSnapshot(blob);
-        if (path) await heartbeat(path);
-        else await heartbeat();
-      }, "image/jpeg", 0.6);
-    };
-    void tick();
-    const id = setInterval(tick, 10000);
-    return () => clearInterval(id);
-  }, [started]);
-
-  function getCameraErrorMessage(error: unknown) {
-    if (!window.isSecureContext) {
-      return "Camera access only works on HTTPS or localhost.";
-    }
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      return "This browser does not support camera access here.";
-    }
-
-    if (error instanceof DOMException) {
-      switch (error.name) {
-        case "NotAllowedError":
-          return "Camera access was blocked. Allow it in your browser site settings, then try again.";
-        case "NotFoundError":
-          return "No camera was found on this device.";
-        case "NotReadableError":
-          return "Your camera is already being used by another app or browser tab.";
-        case "OverconstrainedError":
-          return "This device could not start the requested camera.";
-        case "SecurityError":
-          return "Camera access is blocked in this browser context.";
-        case "AbortError":
-          return "The camera request was interrupted. Please try again.";
-      }
-    }
-
-    return "Camera permission is required to start the competition.";
-  }
-
-  async function requestCamera() {
-    setCameraError(null);
-
-    if (!window.isSecureContext) {
-      setCameraReady(false);
-      setCameraError("Camera access only works on HTTPS or localhost.");
-      return;
-    }
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraReady(false);
-      setCameraError("This browser does not support camera access here.");
-      return;
-    }
-
-    const currentStream = streamRef.current;
-    if (currentStream && currentStream.getTracks().some((track) => track.readyState === "live")) {
-      setCameraReady(true);
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      streamRef.current = stream;
-      setCameraReady(true);
-    } catch (error) {
-      setCameraReady(false);
-      setCameraError(getCameraErrorMessage(error));
-    }
-  }
-
   async function beginQuiz() {
-    if (!cameraReady || !student) return;
+    if (!student) return;
     try { await document.documentElement.requestFullscreen(); } catch { /* allow */ }
-    await startSession(student);
     startedAtRef.current = Date.now();
     setStarted(true);
   }
@@ -266,7 +164,7 @@ function QuizPage() {
       student, score, total: questions.length, timeTakenSeconds, reason,
       flagCount: flagCountRef.current,
     });
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    clearPersistedQuizState();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     navigate({ to: "/done" });
   }
@@ -285,36 +183,19 @@ function QuizPage() {
             <Link to="/"><Logo className="h-14 w-auto" /></Link>
             <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">← Home</Link>
           </div>
-          <div className="mt-3 grid flex-1 grid-rows-[auto_1fr_auto] gap-3 rounded-3xl border border-border bg-card/95 p-5 shadow-glow backdrop-blur min-h-0">
+          <div className="mt-3 flex flex-1 flex-col justify-center gap-4 rounded-3xl border border-border bg-card/95 p-6 shadow-glow backdrop-blur">
             <div>
-              <h1 className="font-display text-2xl font-bold">Pre-flight Checks</h1>
-              <p className="text-sm text-muted-foreground">
-                Hello <span className="font-semibold text-foreground">{student.fullName}</span> - {standardLabel} ({categoryLabel}). Enable your camera to begin.
+              <h1 className="font-display text-2xl font-bold">Ready to begin?</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Hello <span className="font-semibold text-foreground">{student.fullName}</span> - {standardLabel} ({categoryLabel}).
               </p>
             </div>
-
-            <div className="min-h-0 overflow-hidden rounded-2xl border border-border bg-black/90">
-              {cameraReady ? (
-                <video ref={previewVideoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm text-white/60">Camera preview will appear here</div>
-              )}
-            </div>
-
-            <div>
-              {cameraError && <p className="mb-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{cameraError}</p>}
-              <div className="grid gap-2 sm:grid-cols-2">
-                <button onClick={requestCamera} disabled={cameraReady} className="rounded-xl border border-input bg-secondary px-4 py-2.5 text-sm font-semibold text-secondary-foreground transition hover:bg-secondary/80 disabled:opacity-60">
-                  {cameraReady ? "✓ Camera ready" : "Enable Camera"}
-                </button>
-                <button onClick={beginQuiz} disabled={!cameraReady} className="rounded-xl bg-gradient-cta px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:scale-[1.01] disabled:opacity-50">
-                  Begin Quiz →
-                </button>
-              </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                {Math.round(QUIZ_DURATION_SECONDS / 60)} min · {questions.length} questions · Fullscreen & tab switches are logged
-              </p>
-            </div>
+            <button onClick={beginQuiz} className="rounded-xl bg-gradient-cta px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:scale-[1.01]">
+              Begin Quiz →
+            </button>
+            <p className="text-[11px] text-muted-foreground">
+              {Math.round(QUIZ_DURATION_SECONDS / 60)} min · {questions.length} questions · Fullscreen & tab switches are logged
+            </p>
           </div>
         </div>
       </div>
@@ -353,14 +234,6 @@ function QuizPage() {
           <div className="h-full bg-gradient-cta transition-all" style={{ width: `${((current + 1) / questions.length) * 100}%` }} />
         </div>
       </header>
-
-      {/* camera floating */}
-      <div className="fixed bottom-3 left-3 z-30 w-28 overflow-hidden rounded-lg border-2 border-brand-orange shadow-glow sm:w-36">
-        <video ref={liveVideoRef} autoPlay muted playsInline className="aspect-video w-full bg-black object-cover" />
-        <div className="flex items-center gap-1 bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" /> Live
-        </div>
-      </div>
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 min-h-0 gap-4 px-4 py-3">
         <section className="flex flex-1 min-w-0 flex-col">

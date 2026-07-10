@@ -19,7 +19,6 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as AuthenticatedAdminSeniorRouteImport } from './routes/_authenticated.admin.senior'
 import { Route as AuthenticatedAdminRound2RouteImport } from './routes/_authenticated.admin.round2'
-import { Route as AuthenticatedAdminMonitorRouteImport } from './routes/_authenticated.admin.monitor'
 import { Route as AuthenticatedAdminJuniorRouteImport } from './routes/_authenticated.admin.junior'
 
 const QuizRoute = QuizRouteImport.update({
@@ -73,12 +72,6 @@ const AuthenticatedAdminRound2Route =
     path: '/round2',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminMonitorRoute =
-  AuthenticatedAdminMonitorRouteImport.update({
-    id: '/monitor',
-    path: '/monitor',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
 const AuthenticatedAdminJuniorRoute =
   AuthenticatedAdminJuniorRouteImport.update({
     id: '/junior',
@@ -94,7 +87,6 @@ export interface FileRoutesByFullPath {
   '/quiz': typeof QuizRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/admin/junior': typeof AuthenticatedAdminJuniorRoute
-  '/admin/monitor': typeof AuthenticatedAdminMonitorRoute
   '/admin/round2': typeof AuthenticatedAdminRound2Route
   '/admin/senior': typeof AuthenticatedAdminSeniorRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -106,7 +98,6 @@ export interface FileRoutesByTo {
   '/entry': typeof EntryRoute
   '/quiz': typeof QuizRoute
   '/admin/junior': typeof AuthenticatedAdminJuniorRoute
-  '/admin/monitor': typeof AuthenticatedAdminMonitorRoute
   '/admin/round2': typeof AuthenticatedAdminRound2Route
   '/admin/senior': typeof AuthenticatedAdminSeniorRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -121,7 +112,6 @@ export interface FileRoutesById {
   '/quiz': typeof QuizRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/admin/junior': typeof AuthenticatedAdminJuniorRoute
-  '/_authenticated/admin/monitor': typeof AuthenticatedAdminMonitorRoute
   '/_authenticated/admin/round2': typeof AuthenticatedAdminRound2Route
   '/_authenticated/admin/senior': typeof AuthenticatedAdminSeniorRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -136,7 +126,6 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/admin'
     | '/admin/junior'
-    | '/admin/monitor'
     | '/admin/round2'
     | '/admin/senior'
     | '/admin/'
@@ -148,7 +137,6 @@ export interface FileRouteTypes {
     | '/entry'
     | '/quiz'
     | '/admin/junior'
-    | '/admin/monitor'
     | '/admin/round2'
     | '/admin/senior'
     | '/admin'
@@ -162,7 +150,6 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/_authenticated/admin'
     | '/_authenticated/admin/junior'
-    | '/_authenticated/admin/monitor'
     | '/_authenticated/admin/round2'
     | '/_authenticated/admin/senior'
     | '/_authenticated/admin/'
@@ -249,13 +236,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRound2RouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/monitor': {
-      id: '/_authenticated/admin/monitor'
-      path: '/monitor'
-      fullPath: '/admin/monitor'
-      preLoaderRoute: typeof AuthenticatedAdminMonitorRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
     '/_authenticated/admin/junior': {
       id: '/_authenticated/admin/junior'
       path: '/junior'
@@ -268,7 +248,6 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminJuniorRoute: typeof AuthenticatedAdminJuniorRoute
-  AuthenticatedAdminMonitorRoute: typeof AuthenticatedAdminMonitorRoute
   AuthenticatedAdminRound2Route: typeof AuthenticatedAdminRound2Route
   AuthenticatedAdminSeniorRoute: typeof AuthenticatedAdminSeniorRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -276,7 +255,6 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminJuniorRoute: AuthenticatedAdminJuniorRoute,
-  AuthenticatedAdminMonitorRoute: AuthenticatedAdminMonitorRoute,
   AuthenticatedAdminRound2Route: AuthenticatedAdminRound2Route,
   AuthenticatedAdminSeniorRoute: AuthenticatedAdminSeniorRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,

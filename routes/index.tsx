@@ -49,8 +49,7 @@ function Home() {
         </div>
 
         <div className="mt-5 hidden gap-3 text-xs text-muted-foreground sm:flex">
-          <span>· Live camera proctoring</span>
-          <span>· Fullscreen enforced</span>
+          <span>· Fullscreen & tab switches logged</span>
           <span>· 60 minute timer</span>
         </div>
       </div>

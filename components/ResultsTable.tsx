@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { FlagBadge } from "@/components/FlagBadge";
 
 type Row = {
   id: string;
+  session_id: string;
   full_name: string;
   school_name: string;
   standard: number | null;
@@ -22,7 +24,7 @@ export function ResultsTable({ category, title }: { category: "junior" | "senior
     (async () => {
       const { data } = await supabase
         .from("submissions")
-        .select("id, full_name, school_name, standard, score, total, time_taken_seconds, flag_count, reason, submitted_at")
+        .select("id, session_id, full_name, school_name, standard, score, total, time_taken_seconds, flag_count, reason, submitted_at")
         .gte("standard", standardRange.min)
         .lte("standard", standardRange.max)
         .order("submitted_at", { ascending: false });
@@ -72,9 +74,7 @@ export function ResultsTable({ category, title }: { category: "junior" | "senior
                 <td className="px-4 py-2 font-semibold">{r.score}/{r.total}</td>
                 <td className="px-4 py-2 tabular-nums">{Math.floor(r.time_taken_seconds/60)}m {r.time_taken_seconds%60}s</td>
                 <td className="px-4 py-2">
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.flag_count ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"}`}>
-                    {r.flag_count}
-                  </span>
+                  <FlagBadge sessionId={r.session_id} count={r.flag_count} />
                 </td>
                 <td className="px-4 py-2 text-xs text-muted-foreground">{new Date(r.submitted_at).toLocaleString()}</td>
               </tr>

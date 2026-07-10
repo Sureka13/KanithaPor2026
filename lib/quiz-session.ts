@@ -57,46 +57,76 @@ function normalizeStudentCategory(student: Student): Student {
 
 
 
-export async function startSession(student: Student) {
-  const normalizedStudent = normalizeStudentCategory(student);
-  const sessionId = getSessionId();
-  await supabase.from("active_sessions").upsert({
-    session_id: sessionId,
-    full_name: normalizedStudent.fullName,
-    school_name: normalizedStudent.schoolName,
-    standard: normalizedStudent.standard,
-    category: normalizedStudent.category,
-    started_at: new Date().toISOString(),
-    last_seen_at: new Date().toISOString(),
-  });
-}
-
-export async function heartbeat(snapshotPath?: string) {
-  const sessionId = getSessionId();
-  const patch = snapshotPath
-    ? { last_seen_at: new Date().toISOString(), snapshot_path: snapshotPath }
-    : { last_seen_at: new Date().toISOString() };
-  await supabase.from("active_sessions").update(patch).eq("session_id", sessionId);
-}
-
-export async function uploadSnapshot(blob: Blob): Promise<string | null> {
-  const sessionId = getSessionId();
-  const path = `${sessionId}/latest.jpg`;
-  const { error } = await supabase.storage
-    .from("snapshots")
-    .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
-  if (error) return null;
-  return path;
-}
-
+// Silent audit trail: not shown live, but visible per-student in the admin
+// results tables afterward. Best-effort — losing one flag event is fine,
+// losing the exam isn't, so this never throws into the caller.
 export async function pushEvent(e: ProctorEvent) {
   const sessionId = getSessionId();
-  await supabase.from("proctor_events").insert({
-    session_id: sessionId,
-    type: e.type,
-    question_number: e.questionNumber,
-    occurred_at: new Date(e.timestamp).toISOString(),
-  });
+  try {
+    await supabase.from("proctor_events").insert({
+      session_id: sessionId,
+      type: e.type,
+      question_number: e.questionNumber,
+      occurred_at: new Date(e.timestamp).toISOString(),
+    });
+  } catch {
+    /* best-effort */
+  }
+}
+
+// The one write that must never be silently lost: a student's final score.
+// On a free-tier project, a burst of ~500 simultaneous submissions at
+// "time's up" can get rate-limited — retry a few times, and if that still
+// fails, queue it in localStorage so it isn't gone. flushPendingSubmissions()
+// (called on app load) will keep trying to deliver it.
+const PENDING_SUBMISSIONS_KEY = "kp.pendingSubmissions";
+
+type SubmissionPayload = {
+  session_id: string;
+  full_name: string;
+  school_name: string;
+  standard: number | null;
+  category: Category;
+  round: number;
+  score: number;
+  total: number;
+  time_taken_seconds: number;
+  reason: "completed" | "time-up";
+  flag_count: number;
+};
+
+function loadPendingSubmissions(): SubmissionPayload[] {
+  if (!isBrowser) return [];
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_SUBMISSIONS_KEY) ?? "[]") as SubmissionPayload[];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingSubmissions(list: SubmissionPayload[]) {
+  if (!isBrowser) return;
+  localStorage.setItem(PENDING_SUBMISSIONS_KEY, JSON.stringify(list));
+}
+
+async function insertSubmission(payload: SubmissionPayload): Promise<boolean> {
+  try {
+    const { error } = await supabase.from("submissions").insert(payload);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function flushPendingSubmissions() {
+  const pending = loadPendingSubmissions();
+  if (!pending.length) return;
+  const stillPending: SubmissionPayload[] = [];
+  for (const payload of pending) {
+    const ok = await insertSubmission(payload);
+    if (!ok) stillPending.push(payload);
+  }
+  savePendingSubmissions(stillPending);
 }
 
 export async function endSessionWithSubmission(args: {
@@ -109,7 +139,7 @@ export async function endSessionWithSubmission(args: {
 }) {
   const normalizedStudent = normalizeStudentCategory(args.student);
   const sessionId = getSessionId();
-  await supabase.from("submissions").insert({
+  const payload: SubmissionPayload = {
     session_id: sessionId,
     full_name: normalizedStudent.fullName,
     school_name: normalizedStudent.schoolName,
@@ -121,7 +151,16 @@ export async function endSessionWithSubmission(args: {
     time_taken_seconds: args.timeTakenSeconds,
     reason: args.reason,
     flag_count: args.flagCount,
-  });
-  await supabase.from("active_sessions").delete().eq("session_id", sessionId);
+  };
+
+  let ok = false;
+  for (let attempt = 0; attempt < 4 && !ok; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, attempt * 800));
+    ok = await insertSubmission(payload);
+  }
+  if (!ok) {
+    savePendingSubmissions([...loadPendingSubmissions(), payload]);
+  }
+
   resetSession();
 }

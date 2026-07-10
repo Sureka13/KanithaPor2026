@@ -12,7 +12,6 @@ const TABS = [
   { to: "/admin/junior", label: "Standards 1-3 Results" },
   { to: "/admin/senior", label: "Standards 4-6 Results" },
   { to: "/admin/round2", label: "Round 2 (Top 50)" },
-  { to: "/admin/monitor", label: "Live Monitoring" },
 ] as const;
 
 function AdminLayout() {

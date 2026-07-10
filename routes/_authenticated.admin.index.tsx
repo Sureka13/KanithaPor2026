@@ -7,19 +7,17 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 });
 
 function Overview() {
-  const [stats, setStats] = useState({ std13: 0, std46: 0, live: 0, flagged: 0 });
+  const [stats, setStats] = useState({ std13: 0, std46: 0, flagged: 0 });
   useEffect(() => {
     (async () => {
-      const [std13, std46, live, flagged] = await Promise.all([
+      const [std13, std46, flagged] = await Promise.all([
         supabase.from("submissions").select("id", { count: "exact", head: true }).gte("standard", 1).lte("standard", 3),
         supabase.from("submissions").select("id", { count: "exact", head: true }).gte("standard", 4).lte("standard", 6),
-        supabase.from("active_sessions").select("session_id", { count: "exact", head: true }),
         supabase.from("submissions").select("id", { count: "exact", head: true }).gt("flag_count", 0),
       ]);
       setStats({
         std13: std13.count ?? 0,
         std46: std46.count ?? 0,
-        live: live.count ?? 0,
         flagged: flagged.count ?? 0,
       });
     })();
@@ -27,17 +25,15 @@ function Overview() {
 
   return (
     <div className="h-full overflow-auto p-6">
-      <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-3">
         <StatBox label="Standards 1-3 Submissions" value={stats.std13} />
         <StatBox label="Standards 4-6 Submissions" value={stats.std46} />
-        <StatBox label="Live Now" value={stats.live} accent />
         <StatBox label="Flagged" value={stats.flagged} warn />
       </div>
       <div className="mx-auto mt-6 max-w-6xl rounded-2xl border border-border bg-card p-6">
         <h2 className="font-display text-lg font-semibold">Welcome, Administrator</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Use the tabs above to review Standards 1-3 and Standards 4-6 results, monitor live participants,
-          and manage Round 2 qualification.
+          Use the tabs above to review Standards 1-3 and Standards 4-6 results, and manage Round 2 qualification.
         </p>
       </div>
     </div>

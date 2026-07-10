@@ -3,6 +3,7 @@ import { Outlet, createRootRouteWithContext, useRouter, HeadContent } from "@tan
 import { useEffect, type ReactNode } from "react";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { flushPendingSubmissions } from "../lib/quiz-session";
 
 function NotFoundComponent() {
   return (
@@ -104,6 +105,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    void flushPendingSubmissions();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
