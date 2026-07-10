@@ -138,6 +138,7 @@ export type Database = {
           school_name: string
           score: number
           session_id: string
+          site: string
           standard: number | null
           submitted_at: string
           time_taken_seconds: number
@@ -153,6 +154,7 @@ export type Database = {
           school_name: string
           score?: number
           session_id: string
+          site?: string
           standard?: number | null
           submitted_at?: string
           time_taken_seconds?: number
@@ -168,6 +170,7 @@ export type Database = {
           school_name?: string
           score?: number
           session_id?: string
+          site?: string
           standard?: number | null
           submitted_at?: string
           time_taken_seconds?: number

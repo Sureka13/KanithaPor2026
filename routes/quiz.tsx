@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { Clock, ListChecks, ShieldCheck, Trophy } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { MathSymbols } from "@/components/MathSymbols";
 import { getQuestionsForCategory, QUIZ_DURATION_SECONDS, type Question } from "@/lib/questions";
 import { shuffleQuestion } from "@/utils/shuffleQuestion";
 import { getSessionId, loadStudent, pushEvent, endSessionWithSubmission } from "@/lib/quiz-session";
@@ -176,26 +178,51 @@ function QuizPage() {
 
   // Pre-quiz
   if (!started) {
+    const initials = student.fullName.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
     return (
-      <div className="h-screen w-screen overflow-hidden bg-hero">
-        <div className="mx-auto flex h-full max-w-3xl flex-col px-4 py-4">
+      <div className="relative h-screen w-screen overflow-hidden bg-hero">
+        <MathSymbols />
+        <div className="relative z-10 mx-auto flex h-full max-w-3xl flex-col px-4 py-4">
           <div className="flex shrink-0 items-center justify-between">
             <Link to="/"><Logo className="h-14 w-auto" /></Link>
             <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">← Home</Link>
           </div>
-          <div className="mt-3 flex flex-1 flex-col justify-center gap-4 rounded-3xl border border-border bg-card/95 p-6 shadow-glow backdrop-blur">
-            <div>
-              <h1 className="font-display text-2xl font-bold">Ready to begin?</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Hello <span className="font-semibold text-foreground">{student.fullName}</span> - {standardLabel} ({categoryLabel}).
-              </p>
+
+          <div className="mt-3 flex flex-1 flex-col justify-center gap-5 overflow-auto rounded-3xl border border-border bg-card/95 p-6 shadow-glow backdrop-blur sm:p-8">
+            <div className="text-center">
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider ${student.category === "junior" ? "bg-brand-blue/10 text-brand-blue-deep" : "bg-brand-orange/15 text-brand-orange"}`}>
+                <Trophy className="h-3.5 w-3.5" /> {categoryLabel}
+              </span>
+              <h1 className="mt-3 font-display text-3xl font-bold text-foreground">Ready to begin?</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Good luck, champion. Give it your best shot.</p>
             </div>
-            <button onClick={beginQuiz} className="rounded-xl bg-gradient-cta px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:scale-[1.01]">
+
+            <div className="flex items-center gap-3 rounded-2xl border border-border bg-background/60 p-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-cta text-base font-bold text-white">
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate font-semibold text-foreground">{student.fullName}</div>
+                <div className="truncate text-xs text-muted-foreground">{student.schoolName} · {standardLabel}</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <StatTile icon={Clock} label="Duration" value={`${Math.round(QUIZ_DURATION_SECONDS / 60)} min`} />
+              <StatTile icon={ListChecks} label="Questions" value={String(questions.length)} />
+              <StatTile icon={ShieldCheck} label="Proctoring" value="Active" />
+            </div>
+
+            <ul className="space-y-1.5 text-xs text-muted-foreground sm:text-sm">
+              <li>• Stay in fullscreen mode for the entire quiz.</li>
+              <li>• Switching tabs or windows is logged.</li>
+              <li>• Answer as many questions as you can before time runs out.</li>
+              <li>• Click <span className="font-semibold text-foreground">Submit Quiz</span> when you're finished.</li>
+            </ul>
+
+            <button onClick={beginQuiz} className="rounded-xl bg-gradient-cta px-4 py-3.5 text-base font-semibold text-white shadow-glow transition hover:scale-[1.01]">
               Begin Quiz →
             </button>
-            <p className="text-[11px] text-muted-foreground">
-              {Math.round(QUIZ_DURATION_SECONDS / 60)} min · {questions.length} questions · Fullscreen & tab switches are logged
-            </p>
           </div>
         </div>
       </div>
@@ -290,6 +317,16 @@ function QuizPage() {
           </div>
         </aside>
       </main>
+    </div>
+  );
+}
+
+function StatTile({ icon: Icon, label, value }: { icon: ComponentType<{ className?: string }>; label: string; value: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-xl border border-border bg-background/60 py-3 text-center">
+      <Icon className="h-4 w-4 text-accent" />
+      <div className="text-sm font-bold text-foreground">{value}</div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
     </div>
   );
 }

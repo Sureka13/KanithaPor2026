@@ -26,7 +26,7 @@ function Round2Page() {
       const { data } = await supabase
         .from("submissions")
         .select("id, session_id, full_name, school_name, standard, score, total, time_taken_seconds, flag_count")
-        .gte("standard", 4).lte("standard", 6).eq("round", 1)
+        .gte("standard", 4).lte("standard", 6).eq("round", 1).eq("site", "production")
         .order("score", { ascending: false })
         .order("time_taken_seconds", { ascending: true })
         .limit(200);
@@ -51,7 +51,7 @@ function Round2Page() {
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
         <div>
           <h1 className="font-display text-xl font-bold">Standards 4-6 Round 1 Rankings</h1>
-          <p className="text-sm text-muted-foreground">Top 50 qualify for Round 2 from Standards 4-6. Only admins see this list.</p>
+          <p className="text-sm text-muted-foreground">Top 50 qualify for Round 2 from Standards 4-6. Live submissions only — demo runs are excluded.</p>
         </div>
         <button onClick={exportCSV} disabled={rows.length === 0} className="rounded-lg bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
           Export Top 50 CSV

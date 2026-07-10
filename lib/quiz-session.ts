@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { SITE_SOURCE } from "@/lib/site-config";
 
 // The stored keys stay aligned with the existing database values:
 // junior => Standards 1-3, senior => Standards 4-6.
@@ -93,6 +94,7 @@ type SubmissionPayload = {
   time_taken_seconds: number;
   reason: "completed" | "time-up";
   flag_count: number;
+  site: "production" | "demo";
 };
 
 function loadPendingSubmissions(): SubmissionPayload[] {
@@ -154,6 +156,7 @@ export async function endSessionWithSubmission(args: {
     time_taken_seconds: args.timeTakenSeconds,
     reason: args.reason,
     flag_count: args.flagCount,
+    site: SITE_SOURCE,
   };
 
   let ok = false;
