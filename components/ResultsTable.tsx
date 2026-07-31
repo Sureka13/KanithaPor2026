@@ -29,7 +29,8 @@ export function ResultsTable({ category, title }: { category: "junior" | "senior
         .select("id, session_id, full_name, school_name, standard, score, total, time_taken_seconds, flag_count, reason, submitted_at, site")
         .gte("standard", standardRange.min)
         .lte("standard", standardRange.max)
-        .order("submitted_at", { ascending: false });
+        .order("score", { ascending: false })
+        .order("time_taken_seconds", { ascending: true });
       setRows((data ?? []) as Row[]);
     })();
   }, [standardRange.max, standardRange.min]);
@@ -70,6 +71,7 @@ export function ResultsTable({ category, title }: { category: "junior" | "senior
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-muted/80 text-left text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
+              <th className="px-4 py-2">Rank</th>
               <th className="px-4 py-2">Name</th><th className="px-4 py-2">School</th>
               <th className="px-4 py-2">Standard</th>
               <th className="px-4 py-2">Score</th><th className="px-4 py-2">Time</th>
@@ -77,9 +79,10 @@ export function ResultsTable({ category, title }: { category: "junior" | "senior
             </tr>
           </thead>
           <tbody>
-            {filteredRows.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No submissions yet.</td></tr>}
-            {filteredRows.map((r) => (
+            {filteredRows.length === 0 && <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">No submissions yet.</td></tr>}
+            {filteredRows.map((r, i) => (
               <tr key={r.id} className="border-t border-border hover:bg-muted/30">
+                <td className="px-4 py-2 font-semibold">{i + 1}</td>
                 <td className="px-4 py-2 font-medium">{r.full_name}</td>
                 <td className="px-4 py-2 text-muted-foreground">{r.school_name}</td>
                 <td className="px-4 py-2">{r.standard ?? "—"}</td>
