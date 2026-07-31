@@ -118,12 +118,12 @@ function savePendingSubmissions(list: SubmissionPayload[]) {
 // upsert on session_id (not insert) so a retry after a transient client-side
 // error — the write may have actually landed server-side — updates the same
 // row instead of creating a duplicate submission.
-async function insertSubmission(payload: SubmissionPayload): Promise<boolean> {
+async function insertSubmission(payload: SubmissionPayload): Promise<{ ok: boolean; message?: string }> {
   try {
     const { error } = await supabase.from("submissions").upsert(payload, { onConflict: "session_id" });
-    return !error;
-  } catch {
-    return false;
+    return { ok: !error, message: error?.message };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -132,7 +132,7 @@ export async function flushPendingSubmissions() {
   if (!pending.length) return;
   const stillPending: SubmissionPayload[] = [];
   for (const payload of pending) {
-    const ok = await insertSubmission(payload);
+    const { ok } = await insertSubmission(payload);
     if (!ok) stillPending.push(payload);
   }
   savePendingSubmissions(stillPending);
@@ -145,7 +145,7 @@ export async function endSessionWithSubmission(args: {
   timeTakenSeconds: number;
   reason: "completed" | "time-up";
   flagCount: number;
-}): Promise<boolean> {
+}): Promise<{ ok: boolean; message?: string }> {
   const normalizedStudent = normalizeStudentCategory(args.student);
   const sessionId = getSessionId();
   const payload: SubmissionPayload = {
@@ -164,14 +164,15 @@ export async function endSessionWithSubmission(args: {
   };
 
   let ok = false;
+  let message: string | undefined;
   for (let attempt = 0; attempt < 4 && !ok; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, attempt * 800));
-    ok = await insertSubmission(payload);
+    ({ ok, message } = await insertSubmission(payload));
   }
   if (!ok) {
     savePendingSubmissions([...loadPendingSubmissions(), payload]);
   }
 
   resetSession();
-  return ok;
+  return { ok, message };
 }

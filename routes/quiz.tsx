@@ -162,12 +162,12 @@ function QuizPage() {
     finishedRef.current = true;
     const score = questions.reduce((acc, q, i) => acc + (answers[i] === q.answer ? 1 : 0), 0);
     const timeTakenSeconds = Math.max(0, Math.round((Date.now() - startedAtRef.current) / 1000));
-    const ok = await endSessionWithSubmission({
+    const { ok, message } = await endSessionWithSubmission({
       student, score, total: questions.length, timeTakenSeconds, reason,
       flagCount: flagCountRef.current,
     });
     if (!ok) {
-      alert("Your submission could not be sent. Please do NOT close this page — show this screen to your teacher/invigilator immediately so it can be recovered.");
+      alert(`Your submission could not be sent. Please do NOT close this page — show this screen to your teacher/invigilator immediately so it can be recovered.\n\nError detail: ${message ?? "unknown"}`);
       finishedRef.current = false;
       return;
     }
