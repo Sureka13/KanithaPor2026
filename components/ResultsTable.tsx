@@ -20,19 +20,27 @@ type Row = {
 export function ResultsTable({ category, title }: { category: "junior" | "senior"; title: string }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [siteFilter, setSiteFilter] = useState<"all" | "production" | "demo">("all");
+  const [loading, setLoading] = useState(false);
   const standardRange = category === "junior" ? { min: 1, max: 3 } : { min: 4, max: 6 };
 
+  async function fetchRows() {
+    setLoading(true);
+    const { data } = await supabase
+      .from("submissions")
+      .select("id, session_id, full_name, school_name, standard, score, total, time_taken_seconds, flag_count, reason, submitted_at, site")
+      .gte("standard", standardRange.min)
+      .lte("standard", standardRange.max)
+      .order("score", { ascending: false })
+      .order("time_taken_seconds", { ascending: true });
+    setRows((data ?? []) as Row[]);
+    setLoading(false);
+  }
+
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("submissions")
-        .select("id, session_id, full_name, school_name, standard, score, total, time_taken_seconds, flag_count, reason, submitted_at, site")
-        .gte("standard", standardRange.min)
-        .lte("standard", standardRange.max)
-        .order("score", { ascending: false })
-        .order("time_taken_seconds", { ascending: true });
-      setRows((data ?? []) as Row[]);
-    })();
+    fetchRows();
+    const id = setInterval(fetchRows, 5000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [standardRange.max, standardRange.min]);
 
   const filteredRows = useMemo(
@@ -62,6 +70,9 @@ export function ResultsTable({ category, title }: { category: "junior" | "senior
           <SiteFilterButton active={siteFilter === "all"} onClick={() => setSiteFilter("all")}>All</SiteFilterButton>
           <SiteFilterButton active={siteFilter === "production"} onClick={() => setSiteFilter("production")}>Live</SiteFilterButton>
           <SiteFilterButton active={siteFilter === "demo"} onClick={() => setSiteFilter("demo")}>Demo</SiteFilterButton>
+          <button onClick={fetchRows} disabled={loading} className="rounded-lg border border-input bg-card px-4 py-2 text-sm font-semibold text-foreground disabled:opacity-50">
+            {loading ? "Refreshing…" : "Refresh"}
+          </button>
           <button onClick={exportCSV} disabled={filteredRows.length === 0} className="rounded-lg bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
             Export CSV
           </button>
