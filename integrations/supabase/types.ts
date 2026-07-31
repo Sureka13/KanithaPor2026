@@ -132,6 +132,7 @@ export type Database = {
           category: string
           flag_count: number
           full_name: string
+          ic_number: string
           id: string
           reason: string
           round: number
@@ -148,6 +149,7 @@ export type Database = {
           category: string
           flag_count?: number
           full_name: string
+          ic_number?: string
           id?: string
           reason?: string
           round?: number
@@ -164,6 +166,7 @@ export type Database = {
           category?: string
           flag_count?: number
           full_name?: string
+          ic_number?: string
           id?: string
           reason?: string
           round?: number
