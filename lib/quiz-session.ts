@@ -25,12 +25,16 @@ export const isBrowser = typeof window !== "undefined";
 
 export function getSessionId(): string {
   if (!isBrowser) return "";
-  let s = localStorage.getItem(SESSION_KEY);
-  if (!s) {
-    s = crypto.randomUUID();
-    localStorage.setItem(SESSION_KEY, s);
+  try {
+    let s = localStorage.getItem(SESSION_KEY);
+    if (!s) {
+      s = crypto.randomUUID();
+      localStorage.setItem(SESSION_KEY, s);
+    }
+    return s;
+  } catch {
+    return crypto.randomUUID();
   }
-  return s;
 }
 export function resetSession() {
   if (!isBrowser) return;
@@ -141,7 +145,7 @@ export async function endSessionWithSubmission(args: {
   timeTakenSeconds: number;
   reason: "completed" | "time-up";
   flagCount: number;
-}) {
+}): Promise<boolean> {
   const normalizedStudent = normalizeStudentCategory(args.student);
   const sessionId = getSessionId();
   const payload: SubmissionPayload = {
@@ -169,4 +173,5 @@ export async function endSessionWithSubmission(args: {
   }
 
   resetSession();
+  return ok;
 }
