@@ -7,6 +7,7 @@ type Row = {
   session_id: string;
   full_name: string;
   school_name: string;
+  ic_number: string;
   standard: number | null;
   score: number;
   total: number;
@@ -26,7 +27,7 @@ export function ResultsTable({ category, title }: { category: "junior" | "senior
     (async () => {
       const { data } = await supabase
         .from("submissions")
-        .select("id, session_id, full_name, school_name, standard, score, total, time_taken_seconds, flag_count, reason, submitted_at, site")
+        .select("id, session_id, full_name, school_name, ic_number, standard, score, total, time_taken_seconds, flag_count, reason, submitted_at, site")
         .gte("standard", standardRange.min)
         .lte("standard", standardRange.max)
         .order("score", { ascending: false })
@@ -42,8 +43,8 @@ export function ResultsTable({ category, title }: { category: "junior" | "senior
 
   function exportCSV() {
     const data = [
-      ["Name","School","Standard","Score","Total","Time(s)","Flags","Source","Reason","SubmittedAt"],
-      ...filteredRows.map((r) => [r.full_name, r.school_name, r.standard ?? "", r.score, r.total, r.time_taken_seconds, r.flag_count, r.site, r.reason, r.submitted_at]),
+      ["Name","School","IC Number","Standard","Score","Total","Time(s)","Flags","Source","Reason","SubmittedAt"],
+      ...filteredRows.map((r) => [r.full_name, r.school_name, r.ic_number, r.standard ?? "", r.score, r.total, r.time_taken_seconds, r.flag_count, r.site, r.reason, r.submitted_at]),
     ];
     const csv = data.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
@@ -73,18 +74,20 @@ export function ResultsTable({ category, title }: { category: "junior" | "senior
             <tr>
               <th className="px-4 py-2">Rank</th>
               <th className="px-4 py-2">Name</th><th className="px-4 py-2">School</th>
+              <th className="px-4 py-2">IC Number</th>
               <th className="px-4 py-2">Standard</th>
               <th className="px-4 py-2">Score</th><th className="px-4 py-2">Time</th>
               <th className="px-4 py-2">Flags</th><th className="px-4 py-2">Source</th><th className="px-4 py-2">Submitted</th>
             </tr>
           </thead>
           <tbody>
-            {filteredRows.length === 0 && <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">No submissions yet.</td></tr>}
+            {filteredRows.length === 0 && <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">No submissions yet.</td></tr>}
             {filteredRows.map((r, i) => (
               <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                 <td className="px-4 py-2 font-semibold">{i + 1}</td>
                 <td className="px-4 py-2 font-medium">{r.full_name}</td>
                 <td className="px-4 py-2 text-muted-foreground">{r.school_name}</td>
+                <td className="px-4 py-2 text-muted-foreground">{r.ic_number}</td>
                 <td className="px-4 py-2">{r.standard ?? "—"}</td>
                 <td className="px-4 py-2 font-semibold">{r.score}/{r.total}</td>
                 <td className="px-4 py-2 tabular-nums">{Math.floor(r.time_taken_seconds/60)}m {r.time_taken_seconds%60}s</td>
