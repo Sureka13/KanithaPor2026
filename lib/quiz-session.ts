@@ -8,7 +8,6 @@ export type Category = "junior" | "senior";
 export type Student = {
   fullName: string;
   schoolName: string;
-  icNumber: string;
   standard: number | null;
   category: Category;
 };
@@ -87,7 +86,6 @@ type SubmissionPayload = {
   session_id: string;
   full_name: string;
   school_name: string;
-  ic_number: string;
   standard: number | null;
   category: Category;
   round: number;
@@ -150,7 +148,6 @@ export async function endSessionWithSubmission(args: {
     session_id: sessionId,
     full_name: normalizedStudent.fullName,
     school_name: normalizedStudent.schoolName,
-    ic_number: normalizedStudent.icNumber,
     standard: normalizedStudent.standard,
     category: normalizedStudent.category,
     round: 1,

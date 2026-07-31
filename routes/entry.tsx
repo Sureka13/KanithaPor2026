@@ -18,7 +18,6 @@ export const Route = createFileRoute("/entry")({
 const schema = z.object({
   fullName: z.string().trim().min(2, "Enter your full name").max(80),
   schoolName: z.string().trim().min(2, "Enter your school name").max(120),
-  icNumber: z.string().trim().min(4, "Enter your IC number").max(20),
   category: z.literal("junior"),
   standard: z.coerce.number().int().min(1).max(6),
 });
@@ -37,7 +36,6 @@ function EntryPage() {
     const parsed = schema.safeParse({
       fullName: fd.get("fullName"),
       schoolName: fd.get("schoolName"),
-      icNumber: fd.get("icNumber"),
       category,
       standard: fd.get("standard"),
     });
@@ -75,10 +73,6 @@ function EntryPage() {
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Field label="Full Name" name="fullName" placeholder="Arjun Kumar" error={errors.fullName} />
               <Field label="School Name" name="schoolName" placeholder="Bharath Vidyalaya" error={errors.schoolName} />
-            </div>
-
-            <div className="mt-3">
-              <Field label="IC Number" name="icNumber" placeholder="030512-01-1234" error={errors.icNumber} />
             </div>
 
             <div className="mt-3">
